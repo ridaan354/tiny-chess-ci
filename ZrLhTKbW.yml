@@ -1,0 +1,43 @@
+name: Chess trial
+
+on:
+  workflow_dispatch:
+    inputs:
+      bot:
+        description: 'Bot dir under bots/ (e.g. v10)'
+        required: true
+        default: 'v10'
+      trial:
+        description: 'Trial number 0-2'
+        required: true
+        default: '0'
+
+jobs:
+  trial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download tiny-chess kit
+        run: |
+          curl -sSL "https://make.fun/c/tiny-chess-01/kit" -o kit.tar.gz
+          mkdir -p kit && tar xzf kit.tar.gz -C kit --strip-components=1
+          ls kit/program/env/server.mjs kit/program/scorer/score.mjs
+      - name: Run trial
+        run: |
+          chmod +x run-trial-ci.sh
+          ./run-trial-ci.sh "${{ inputs.trial }}" "bots/${{ inputs.bot }}" "ci-${{ inputs.bot }}-t${{ inputs.trial }}"
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: trial-${{ inputs.bot }}-t${{ inputs.trial }}
+          path: trials/ci-${{ inputs.bot }}-t${{ inputs.trial }}/
+          retention-days: 30
